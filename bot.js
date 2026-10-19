@@ -16,6 +16,21 @@ async function run(metadata) {
   const bolha = { scope: 'bubble' };
   const dizer = (t) => WA.chat.sendChatMessage(t, bolha);
 
+  // Vai para dentro da área "Setor Financeiro" (área restrita a quem tem a tag financeiro).
+  try {
+    const nome = decodeURIComponent(hash.area || 'Setor Financeiro');
+    const areas = await WA.mapEditor.area.list();
+    const a = areas.find((x) => x.name === nome);
+    if (a) {
+      const x = Math.round(a.x + a.width / 2);
+      const y = Math.round(a.y + a.height - 16); // frente da mesa, perto da borda de baixo
+      try { await WA.player.teleport(x, y); } catch (e) { await WA.player.moveTo(x, y, 10); }
+      console.log('Cláudio: posicionado em', nome, x, y);
+    } else {
+      console.log('Cláudio: área não encontrada', nome);
+    }
+  } catch (e) { console.log('Cláudio: não consegui ir para a área', e); }
+
   WA.player.proximityMeeting.onJoin().subscribe(() => dizer(OI));
 
   WA.chat.onChatMessage(async (mensagem, evento) => {
