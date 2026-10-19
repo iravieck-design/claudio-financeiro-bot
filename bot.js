@@ -16,14 +16,17 @@ async function run(metadata) {
   const bolha = { scope: 'bubble' };
   const dizer = (t) => WA.chat.sendChatMessage(t, bolha);
 
-  // Vai para dentro da área "Setor Financeiro" (área restrita a quem tem a tag financeiro).
+  // Fica na porta do "Setor Financeiro", do lado de fora: dentro da área restrita o bot é desconectado.
+  // Com posicao=dentro nos hash params, volta para dentro da área.
   try {
     const nome = decodeURIComponent(hash.area || 'Setor Financeiro');
     const areas = await WA.mapEditor.area.list();
     const a = areas.find((x) => x.name === nome);
     if (a) {
       const x = Math.round(a.x + a.width / 2);
-      const y = Math.round(a.y + a.height - 16); // frente da mesa, perto da borda de baixo
+      const y = hash.posicao === 'dentro'
+        ? Math.round(a.y + a.height - 16) // frente da mesa, perto da borda de baixo
+        : Math.round(a.y - 24); // corredor, logo acima da borda de cima da área
       try { await WA.player.teleport(x, y); } catch (e) { await WA.player.moveTo(x, y, 10); }
       console.log('Cláudio: posicionado em', nome, x, y);
     } else {
