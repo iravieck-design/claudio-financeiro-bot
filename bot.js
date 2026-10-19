@@ -54,6 +54,16 @@ async function run(metadata) {
     }
   }, bolha);
 
+  // Mantém a conexão ativa: sem movimento, o WorkAdventure desconecta o bot depois de alguns minutos.
+  let lado = 1;
+  setInterval(async () => {
+    try {
+      const p = await WA.player.getPosition();
+      lado = -lado;
+      await WA.player.teleport(Math.round(p.x) + lado, Math.round(p.y));
+    } catch (e) { console.log('Cláudio: passo de presença falhou', e); }
+  }, 60000);
+
   // Os ouvidores acima seguem ativos depois que run() termina (padrão dos bots do WorkAdventure).
   console.log('Cláudio: pronto');
 }
