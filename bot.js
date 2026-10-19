@@ -54,8 +54,8 @@ async function run(metadata) {
     }
   }, bolha);
 
+  // Os ouvidores acima seguem ativos depois que run() termina (padrão dos bots do WorkAdventure).
   console.log('Cláudio: pronto');
-  await new Promise(() => {}); // mantém o bot vivo: se run() terminar, o WorkAdventure encerra o bot
 }
 
 // O WorkAdventure chama o run() do export default.
