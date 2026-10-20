@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenda LOOP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Mural da agenda: lê os eventos da planilha Logística (via Agenda LOOP) e se atualiza sozinho */
+:root{
+  --bg:#f1f4fb; --surface:#ffffff; --ink:#0f1b33; --muted:#56637f; --line:#d8dfee;
+  --accent:#1d4ed8; --accent-soft:#e3eafc;
+  --hl:#f5c518; --hl-ink:#1b1500; --hl-soft:#fdf3c9;
+  --f-display:'Familjen Grotesk',system-ui,sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a1330; --surface:#111e48; --ink:#e8edf9; --muted:#9aa8c7; --line:#243569;
+  --accent:#6ea0ff; --accent-soft:#1a2d63;
+  --hl:#ffd23f; --hl-ink:#1b1500; --hl-soft:#3a3214; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a1330; --surface:#111e48; --ink:#e8edf9; --muted:#9aa8c7; --line:#243569;
+  --accent:#6ea0ff; --accent-soft:#1a2d63;
+  --hl:#ffd23f; --hl-ink:#1b1500; --hl-soft:#3a3214; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:10px;background:var(--accent);color:var(--surface);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:1.2rem}
+h1{font-family:var(--f-display);font-weight:700;font-size:1.7rem;margin:0;line-height:1.1}
+.sub{color:var(--muted);font-size:.85rem}
+.status{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:#2fbf71}
+.dot.off{background:#d0473a}
+button{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+h2{font-family:var(--f-display);font-size:1.05rem;margin:26px 0 10px;display:flex;align-items:center;gap:8px}
+h2 .n{font-family:var(--f-mono);font-size:.75rem;font-weight:500;color:var(--muted)}
+.tag{background:var(--hl);color:var(--hl-ink);font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px;letter-spacing:.03em;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:14px;min-width:0}
+.card.agora{border-color:var(--hl);box-shadow:0 0 0 2px var(--hl) inset;background:linear-gradient(0deg,var(--surface),var(--hl-soft))}
+.data{flex:none;width:62px;text-align:center;border-radius:10px;background:var(--accent-soft);padding:8px 4px;align-self:flex-start}
+.agora .data{background:var(--hl);color:var(--hl-ink)}
+.data b{display:block;font-family:var(--f-display);font-size:1.5rem;line-height:1}
+.data span{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:inherit;opacity:.8}
+.data i{display:block;font-style:normal;font-family:var(--f-mono);font-size:.68rem;margin-top:4px;opacity:.8}
+.info{min-width:0;flex:1}
+.info h3{margin:0;font-family:var(--f-display);font-size:1.05rem;line-height:1.25;overflow-wrap:anywhere}
+.local{color:var(--muted);font-size:.85rem;margin-top:2px}
+.equipe{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.equipe span{background:var(--accent-soft);color:var(--accent);font-size:.74rem;font-weight:600;padding:2px 8px;border-radius:99px}
+.det{margin:8px 0 0;padding:0;list-style:none;font-size:.82rem;color:var(--muted)}
+.det b{color:var(--ink);font-weight:500}
+.quando{font-family:var(--f-mono);font-size:.72rem;color:var(--accent);margin-top:6px}
+.agora .quando{color:var(--ink)}
+.vazio,.erro{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
+.erro{border-color:#d0473a}
+footer{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">L</div>
+      <div><h1>Agenda LOOP</h1><div class="sub" id="hoje"></div></div>
+    </div>
+    <div class="status"><span class="dot" id="dot"></span><span id="estado">carregando...</span><button id="btn" type="button">Atualizar</button></div>
+  </header>
+  <main id="conteudo"><div class="vazio">Carregando a agenda...</div></main>
+  <footer>Vem da planilha Logística de Eventos e Viagens. Atualiza sozinho a cada 5 minutos.</footer>
+</div>
+<script>
+(function () {
+  var params = new URLSearchParams(location.hash.slice(1));
+  var API = params.get('api');
+  var MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var MES3 = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  var SEMANA = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  var el = function (id) { return document.getElementById(id); };
+
+  function data(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function hoje0() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+  function dias(a, b) { return Math.round((b - a) / 864e5); }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+  function quando(ini, fim, h) {
+    if (ini <= h && fim >= h) {
+      var resta = dias(h, fim);
+      return resta === 0 ? 'acontecendo hoje, termina hoje' : 'acontecendo agora, termina em ' + resta + (resta === 1 ? ' dia' : ' dias');
+    }
+    var n = dias(h, ini);
+    if (n === 1) return 'amanhã, ' + SEMANA[ini.getDay()];
+    if (n < 7) return 'em ' + n + ' dias, ' + SEMANA[ini.getDay()];
+    return SEMANA[ini.getDay()] + ', em ' + n + ' dias';
+  }
+
+  function cartao(ev, h) {
+    var ini = data(ev.inicio), fim = data(ev.fim);
+    var agora = ini <= h && fim >= h;
+    var faixa = ev.inicio === ev.fim ? '1 dia'
+      : 'até ' + fim.getDate() + (fim.getMonth() !== ini.getMonth() ? ' ' + MES3[fim.getMonth()] : '');
+    var equipe = (ev.equipe || '').split(/\s*(?:\/|,| E | - )\s*/i).filter(function (x) { return x.trim(); })
+      .map(function (x) { return '<span>' + esc(x.trim()) + '</span>'; }).join('');
+    var det = [['Transporte', ev.transporte], ['Hospedagem', ev.hospedagem], ['Obs', ev.obs]]
+      .filter(function (x) { return x[1]; })
+      .map(function (x) { return '<li><b>' + x[0] + ':</b> ' + esc(x[1]) + '</li>'; }).join('');
+    return '<article class="card' + (agora ? ' agora' : '') + '">' +
+      '<div class="data"><span>' + MES3[ini.getMonth()] + '</span><b>' + ini.getDate() + '</b><i>' + faixa + '</i></div>' +
+      '<div class="info"><h3>' + esc(ev.titulo) + '</h3>' +
+      (ev.local ? '<div class="local">' + esc(ev.local) + '</div>' : '') +
+      (equipe ? '<div class="equipe">' + equipe + '</div>' : '') +
+      (det ? '<ul class="det">' + det + '</ul>' : '') +
+      '<div class="quando">' + quando(ini, fim, h) + '</div></div></article>';
+  }
+
+  function secao(titulo, lista, h, tag) {
+    if (!lista.length) return '';
+    return '<h2>' + titulo + (tag ? ' <span class="tag">' + tag + '</span>' : '') + ' <span class="n">' + lista.length + '</span></h2>' +
+      '<div class="grid">' + lista.map(function (ev) { return cartao(ev, h); }).join('') + '</div>';
+  }
+
+  function desenhar(json) {
+    var h = hoje0();
+    var eventos = (json.eventos || []).filter(function (ev) { return data(ev.fim) >= h; });
+    var agora = [], semana = [], meses = {}, ordem = [];
+    eventos.forEach(function (ev) {
+      var ini = data(ev.inicio);
+      if (ini <= h) agora.push(ev);
+      else if (dias(h, ini) <= 7) semana.push(ev);
+      else {
+        var k = ini.getFullYear() + '-' + ini.getMonth();
+        if (!meses[k]) { meses[k] = []; ordem.push(k); }
+        meses[k].push(ev);
+      }
+    });
+    var html = secao('Acontecendo agora', agora, h, 'ao vivo') + secao('Próximos 7 dias', semana, h);
+    ordem.forEach(function (k) {
+      var p = k.split('-');
+      var nome = MESES[+p[1]];
+      html += secao(nome.charAt(0).toUpperCase() + nome.slice(1) + ' ' + p[0], meses[k], h);
+    });
+    el('conteudo').innerHTML = html || '<div class="vazio">Nenhum evento nos próximos meses.</div>';
+    var at = new Date(json.atualizado);
+    el('estado').textContent = 'atualizado ' + String(at.getHours()).padStart(2, '0') + ':' + String(at.getMinutes()).padStart(2, '0');
+    el('dot').className = 'dot';
+  }
+
+  function carregar() {
+    var d = new Date();
+    el('hoje').textContent = SEMANA[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()] + ' de ' + d.getFullYear();
+    if (!API) {
+      el('conteudo').innerHTML = '<div class="erro">Link incompleto: falta o endereço da agenda (#api=...).</div>';
+      el('estado').textContent = 'sem conexão'; el('dot').className = 'dot off';
+      return;
+    }
+    el('estado').textContent = 'atualizando...';
+    fetch(API, { credentials: 'omit' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(desenhar)
+      .catch(function () {
+        el('dot').className = 'dot off';
+        el('estado').textContent = 'sem conexão, tentando de novo';
+        if (!el('conteudo').querySelector('.card')) el('conteudo').innerHTML = '<div class="erro">Não consegui ler a agenda agora. Tento de novo em 5 minutos.</div>';
+      });
+  }
+
+  el('btn').addEventListener('click', carregar);
+  carregar();
+  setInterval(carregar, 5 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
