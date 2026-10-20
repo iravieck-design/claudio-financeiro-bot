@@ -12,6 +12,7 @@
   --bg:#f1f4fb; --surface:#ffffff; --ink:#0f1b33; --muted:#56637f; --line:#d8dfee;
   --accent:#1d4ed8; --accent-soft:#e3eafc;
   --hl:#f5c518; --hl-ink:#1b1500; --hl-soft:#fdf3c9;
+  --mont:#d50000; --even:#0b8043; --volt:#3f51b5;
   --f-display:'Familjen Grotesk',system-ui,sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -55,6 +56,12 @@ h2 .n{font-family:var(--f-mono);font-size:.75rem;font-weight:500;color:var(--mut
 .det b{color:var(--ink);font-weight:500}
 .quando{font-family:var(--f-mono);font-size:.72rem;color:var(--accent);margin-top:6px}
 .agora .quando{color:var(--ink)}
+.etapas{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.etapas span{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:6px;color:#fff;font-family:var(--f-mono)}
+.etapas .M{background:var(--mont)}.etapas .E{background:var(--even)}.etapas .V{background:var(--volt)}
+.etapas span.hoje{outline:2px solid var(--hl);outline-offset:1px}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin:-6px 0 6px}
+.legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .vazio,.erro{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
 .erro{border-color:#d0473a}
 footer{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center}
@@ -69,6 +76,7 @@ footer{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center}
     </div>
     <div class="status"><span class="dot" id="dot"></span><span id="estado">carregando...</span><button id="btn" type="button">Atualizar</button></div>
   </header>
+  <div class="legenda"><span><i style="background:var(--mont)"></i>Montagem</span><span><i style="background:var(--even)"></i>Evento</span><span><i style="background:var(--volt)"></i>Volta</span></div>
   <main id="conteudo"><div class="vazio">Carregando a agenda...</div></main>
   <footer>Vem da planilha Logística de Eventos e Viagens. Atualiza sozinho a cada 5 minutos.</footer>
 </div>
@@ -97,20 +105,54 @@ footer{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center}
     return SEMANA[ini.getDay()] + ', em ' + n + ' dias';
   }
 
+  // A agenda manda montagem, evento e volta em blocos separados; aqui viram um cartão só, com as etapas coloridas.
+  var SIGLA = { Montagem: 'M', Evento: 'E', Volta: 'V' };
+  function agrupar(lista) {
+    var grupos = {}, out = [];
+    lista.forEach(function (ev, i) {
+      var nome = ev.titulo.replace(/^(MONTAGEM|VOLTA) · /, '');
+      var k = ev.etapa ? [nome, ev.local, ev.ida, ev.montagem, ev.dias, ev.volta].join('|') : 'x' + i;
+      var g = grupos[k];
+      if (!g) {
+        g = grupos[k] = Object.assign({}, ev, { titulo: nome, etapas: [] });
+        out.push(g);
+      }
+      if (ev.inicio < g.inicio) g.inicio = ev.inicio;
+      if (ev.fim > g.fim) g.fim = ev.fim;
+      if (ev.etapa) g.etapas.push({ s: SIGLA[ev.etapa] || 'E', nome: ev.etapa, inicio: ev.inicio, fim: ev.fim });
+    });
+    out.forEach(function (g) { g.etapas.sort(function (a, b) { return a.inicio < b.inicio ? -1 : 1; }); });
+    return out.sort(function (a, b) { return a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : a.titulo < b.titulo ? -1 : 1; });
+  }
+
+  function diasTxt(i, f) {
+    var a = data(i), b = data(f);
+    if (i === f) return a.getDate() + ' ' + MES3[a.getMonth()];
+    return a.getDate() + (a.getMonth() !== b.getMonth() ? ' ' + MES3[a.getMonth()] : '') + '–' + b.getDate() + ' ' + MES3[b.getMonth()];
+  }
+
   function cartao(ev, h) {
     var ini = data(ev.inicio), fim = data(ev.fim);
     var agora = ini <= h && fim >= h;
-    var faixa = ev.inicio === ev.fim ? '1 dia'
-      : 'até ' + fim.getDate() + (fim.getMonth() !== ini.getMonth() ? ' ' + MES3[fim.getMonth()] : '');
+    var evento = (ev.etapas || []).filter(function (e) { return e.s === 'E'; })[0];
+    var dIni = evento ? data(evento.inicio) : ini, dFim = evento ? data(evento.fim) : fim;
+    var faixa = +dIni === +dFim ? '1 dia'
+      : 'até ' + dFim.getDate() + (dFim.getMonth() !== dIni.getMonth() ? ' ' + MES3[dFim.getMonth()] : '');
+    var etapas = (ev.etapas || []).map(function (e) {
+      var hoje = data(e.inicio) <= h && data(e.fim) >= h;
+      return '<span class="' + e.s + (hoje ? ' hoje' : '') + '">' + e.nome + ' ' + diasTxt(e.inicio, e.fim) + '</span>';
+    }).join('');
+    var comHora = function (s) { return /\d\s*(H|:)/i.test(s || '') ? s : ''; };
     var equipe = (ev.equipe || '').split(/\s*(?:\/|,| E | - )\s*/i).filter(function (x) { return x.trim(); })
       .map(function (x) { return '<span>' + esc(x.trim()) + '</span>'; }).join('');
-    var det = [['Transporte', ev.transporte], ['Hospedagem', ev.hospedagem], ['Obs', ev.obs]]
+    var det = [['Ida', comHora(ev.ida)], ['Volta', comHora(ev.volta)], ['Transporte', ev.transporte], ['Hospedagem', ev.hospedagem], ['Obs', ev.obs]]
       .filter(function (x) { return x[1]; })
       .map(function (x) { return '<li><b>' + x[0] + ':</b> ' + esc(x[1]) + '</li>'; }).join('');
     return '<article class="card' + (agora ? ' agora' : '') + '">' +
-      '<div class="data"><span>' + MES3[ini.getMonth()] + '</span><b>' + ini.getDate() + '</b><i>' + faixa + '</i></div>' +
+      '<div class="data"><span>' + MES3[dIni.getMonth()] + '</span><b>' + dIni.getDate() + '</b><i>' + faixa + '</i></div>' +
       '<div class="info"><h3>' + esc(ev.titulo) + '</h3>' +
       (ev.local ? '<div class="local">' + esc(ev.local) + '</div>' : '') +
+      (etapas ? '<div class="etapas">' + etapas + '</div>' : '') +
       (equipe ? '<div class="equipe">' + equipe + '</div>' : '') +
       (det ? '<ul class="det">' + det + '</ul>' : '') +
       '<div class="quando">' + quando(ini, fim, h) + '</div></div></article>';
@@ -124,7 +166,7 @@ footer{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center}
 
   function desenhar(json) {
     var h = hoje0();
-    var eventos = (json.eventos || []).filter(function (ev) { return data(ev.fim) >= h; });
+    var eventos = agrupar(json.eventos || []).filter(function (ev) { return data(ev.fim) >= h; });
     var agora = [], semana = [], meses = {}, ordem = [];
     eventos.forEach(function (ev) {
       var ini = data(ev.inicio);
