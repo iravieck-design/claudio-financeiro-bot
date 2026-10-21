@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agente Google Ads</title>
+<style>
+:root{--bg:#f1f4fb;--ink:#56637f}
+@media (prefers-color-scheme:dark){:root{--bg:#0a1330;--ink:#9aa8c7}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:16px}
+</style>
+</head>
+<body>
+<p id="msg">Carregando o Agente Google Ads...</p>
+<script>
+// Carregador: a página do agente vem do Apps Script (?api=agentehtml), então muda sem republicar este arquivo.
+// O endereço e a chave chegam pelo link da sala no escritório (#api=...&k=...); nada disso fica aqui.
+(async function () {
+  var msg = document.getElementById('msg');
+  var h = new URLSearchParams(location.hash.slice(1));
+  var api = h.get('api');
+  if (!api) { try { api = JSON.parse(localStorage.getItem('ads-cfg') || '{}').api; } catch (e) {} }
+  if (!api) { msg.textContent = 'Abra pelo link da sala no escritório (o link traz a chave).'; return; }
+  try {
+    var r = await fetch(api + '?api=agentehtml', { credentials: 'omit' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var html = await r.text();
+    if (html.indexOf('<html') < 0) throw new Error('resposta inesperada');
+    document.open(); document.write(html); document.close();
+  } catch (e) {
+    msg.textContent = 'Sem conexão com o agente. Recarregue a página.';
+  }
+})();
+</script>
+</body>
+</html>
