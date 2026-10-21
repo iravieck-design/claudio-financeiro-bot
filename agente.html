@@ -21,15 +21,25 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-s
   var api = h.get('api');
   if (!api) { try { api = JSON.parse(localStorage.getItem('ads-cfg') || '{}').api; } catch (e) {} }
   if (!api) { msg.textContent = 'Abra pelo link da sala no escritório (o link traz a chave).'; return; }
-  try {
-    var r = await fetch(api + '?api=agentehtml', { credentials: 'omit' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    var html = await r.text();
-    if (html.indexOf('<html') < 0) throw new Error('resposta inesperada');
-    document.open(); document.write(html); document.close();
-  } catch (e) {
-    msg.textContent = 'Sem conexão com o agente. Recarregue a página.';
+  // Tenta 3 vezes (o Apps Script às vezes demora a acordar) e mostra o motivo se não der.
+  var erro = '';
+  for (var i = 0; i < 3; i++) {
+    try {
+      var r = await fetch(api + '?api=agentehtml&t=' + Date.now(), { credentials: 'omit', cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var html = await r.text();
+      if (html.indexOf('<html') < 0) throw new Error('resposta inesperada: ' + html.slice(0, 80));
+      document.open(); document.write(html); document.close();
+      return;
+    } catch (e) {
+      erro = e && e.message ? e.message : String(e);
+      if (i < 2) {
+        msg.textContent = 'Conectando ao agente... (tentativa ' + (i + 2) + ' de 3)';
+        await new Promise(function (ok) { setTimeout(ok, 1500 * (i + 1)); });
+      }
+    }
   }
+  msg.textContent = 'Sem conexão com o agente (' + erro + '). Recarregue a página ou abra numa aba nova.';
 })();
 </script>
 </body>
