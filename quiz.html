@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz da LOOP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Quiz da LOOP: 10 perguntas sorteadas, 15 s cada, ranking do mês da equipe (placar no projeto Agenda LOOP) */
+:root{
+  --bg:#f1f4fb; --surface:#ffffff; --ink:#0f1b33; --muted:#56637f; --line:#d8dfee;
+  --accent:#1d4ed8; --accent-soft:#e3eafc; --hl:#f5c518; --hl-ink:#1b1500; --hl-soft:#fdf3c9;
+  --in:#13824f; --in-soft:#e2f3ea; --out:#c2412d; --out-soft:#fbe9e5;
+  --f-display:'Familjen Grotesk',system-ui,sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a1330; --surface:#111e48; --ink:#e8edf9; --muted:#9aa8c7; --line:#243569;
+  --accent:#6ea0ff; --accent-soft:#1a2d63; --hl:#ffd23f; --hl-ink:#1b1500; --hl-soft:#3a3214;
+  --in:#4fd08f; --in-soft:#173527; --out:#ff8a73; --out-soft:#3d1f19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a1330; --surface:#111e48; --ink:#e8edf9; --muted:#9aa8c7; --line:#243569;
+  --accent:#6ea0ff; --accent-soft:#1a2d63; --hl:#ffd23f; --hl-ink:#1b1500; --hl-soft:#3a3214;
+  --in:#4fd08f; --in-soft:#173527; --out:#ff8a73; --out-soft:#3d1f19; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo{width:44px;height:44px;border-radius:12px;background:var(--hl);color:var(--hl-ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:1.3rem}
+h1{font-family:var(--f-display);font-size:1.7rem;margin:0;line-height:1.1}
+h2{font-family:var(--f-display);font-size:1.15rem;margin:0 0 10px}
+.sub,.msg{color:var(--muted);font-size:.88rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+input{font:inherit;width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+button{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:12px 16px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;width:100%;margin-top:12px;font-size:1.05rem}
+.topo{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:.85rem;color:var(--muted);margin-bottom:8px}
+.barra{height:8px;border-radius:99px;background:var(--accent-soft);overflow:hidden;margin-bottom:16px}
+.barra i{display:block;height:100%;background:var(--hl);transition:width .1s linear}
+.tema{display:inline-block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);background:var(--accent-soft);padding:2px 10px;border-radius:99px;margin-bottom:8px}
+.pergunta{font-family:var(--f-display);font-size:1.35rem;line-height:1.3;margin:0 0 16px}
+.opcoes{display:grid;gap:10px}
+.opcoes button{text-align:left;font-size:1rem;padding:14px 16px}
+.opcoes button.certa{background:var(--in-soft);border-color:var(--in);color:var(--in);font-weight:600}
+.opcoes button.errada{background:var(--out-soft);border-color:var(--out);color:var(--out)}
+.placar{font-family:var(--f-display);font-size:3rem;font-weight:700;color:var(--accent);line-height:1;margin:6px 0}
+ol.rank{list-style:none;margin:0;padding:0}
+ol.rank li{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px}
+ol.rank li:nth-child(odd){background:var(--bg)}
+ol.rank li.eu{background:var(--hl-soft);font-weight:600}
+ol.rank .pos{font-family:var(--f-mono);color:var(--muted);width:2.2em;display:inline-block}
+ol.rank .pts{font-family:var(--f-mono)}
+.medalha{margin-right:4px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="logo">?</div><div><h1>Quiz da LOOP</h1><div class="sub">10 perguntas · 15 segundos cada · quem responde rápido ganha mais</div></div></header>
+
+  <section id="inicio">
+    <div class="panel">
+      <h2>Quem vai jogar?</h2>
+      <input id="nome" maxlength="24" placeholder="Seu nome" autocomplete="off">
+      <button class="primary" id="jogar" type="button">Jogar</button>
+    </div>
+    <div class="panel"><h2>Ranking do mês</h2><ol class="rank" id="rank-inicio"><li class="msg">Carregando...</li></ol></div>
+  </section>
+
+  <section id="jogo" hidden>
+    <div class="panel">
+      <div class="topo"><span id="contador">1/10</span><span id="pontos">0 pts</span><span id="tempo">15s</span></div>
+      <div class="barra"><i id="barra" style="width:100%"></i></div>
+      <span class="tema" id="tema"></span>
+      <p class="pergunta" id="pergunta"></p>
+      <div class="opcoes" id="opcoes"></div>
+    </div>
+  </section>
+
+  <section id="fim" hidden>
+    <div class="panel">
+      <div class="msg" id="fim-nome"></div>
+      <div class="placar" id="fim-pontos">0</div>
+      <div class="msg" id="fim-acertos"></div>
+      <div class="msg" id="fim-envio" style="margin-top:6px"></div>
+      <button class="primary" id="denovo" type="button">Jogar de novo</button>
+    </div>
+    <div class="panel"><h2>Ranking do mês</h2><ol class="rank" id="rank-fim"></ol></div>
+  </section>
+</div>
+<script>
+(function () {
+  // Endereço do placar chega pelo link da sala (#api=...). Sem ele dá para jogar, só não aparece o ranking.
+  var limpa = function (s) { s = String(s || ''); for (var n = 0; n < 3 && /^https?%3A/i.test(s); n++) s = decodeURIComponent(s); return s; };
+  var API = limpa(new URLSearchParams(location.hash.slice(1)).get('api'));
+  if (!/^https:\/\//.test(API)) API = '';
+
+  var BANCO = [
+    ['Agenda', 'Em que praia acontece o SOL FESTIVAL?', ['Cumbuco', 'Canoa Quebrada', 'Jericoacoara', 'Taíba']],
+    ['Agenda', 'O FESTIVAL DA PAZ de novembro foi em qual cidade?', ['Sobral', 'Tauá', 'Crato', 'Iguatu']],
+    ['Agenda', 'Em que cidade acontece o FEST BERRO?', ['Tauá', 'Quixadá', 'Crateús', 'Canindé']],
+    ['Agenda', 'A REGATA ICARAÍ acontece em qual praia?', ['Icaraí de Amontada', 'Cumbuco', 'Flecheiras', 'Paracuru']],
+    ['Agenda', 'Para qual cidade a equipe voou no SAMBA BRASIL de novembro?', ['Maceió', 'Recife', 'Salvador', 'Natal']],
+    ['Agenda', 'E o SAMBA BRASIL de setembro foi em qual capital?', ['Aracaju', 'Maceió', 'João Pessoa', 'Teresina']],
+    ['Agenda', 'O show de HENRIQUE E JULIANO em novembro foi em qual cidade?', ['Sobral', 'Fortaleza', 'Juazeiro do Norte', 'Iguatu']],
+    ['Agenda', 'Qual cidade da serra aparece quase toda semana na agenda?', ['Ubajara', 'Guaramiranga', 'Viçosa do Ceará', 'Tianguá']],
+    ['Agenda', 'O TEATRO UNIFOR fica em qual cidade?', ['Fortaleza', 'Sobral', 'Caucaia', 'Maracanaú']],
+    ['Agenda', 'O São João de julho com Frank e Richardson foi em qual cidade?', ['Massapê', 'Caruaru', 'Mossoró', 'Campina Grande']],
+    ['Agenda', 'Para qual cidade vai o HALLELUYA CONECT de abril de 2027?', ['Juazeiro', 'Sobral', 'Crato', 'Quixadá']],
+    ['Agenda', 'No Google Agenda da LOOP, qual cor marca os dias de MONTAGEM?', ['Vermelho', 'Verde', 'Azul', 'Amarelo']],
+    ['Agenda', 'E qual cor marca os DIAS DO EVENTO?', ['Verde', 'Vermelho', 'Azul', 'Roxo']],
+    ['Luz', 'Qual protocolo é o padrão para controlar a luz de show?', ['DMX', 'MIDI', 'HDMI', 'Bluetooth']],
+    ['Luz', 'Quantos canais tem um universo DMX?', ['512', '256', '1024', '128']],
+    ['Luz', 'Como se chama a luz robotizada que gira e muda cor e gobo?', ['Moving head', 'Ribalta', 'Strobo', 'Elipsoidal fixo']],
+    ['Luz', 'O refletor operado à mão que segue o artista no palco é o...', ['Canhão seguidor', 'Wash', 'Ribalta', 'Mini brute']],
+    ['Luz', 'Qual gelatina é o azul escuro clássico de palco?', ['Congo Blue', 'Bastard Amber', 'Lavender', 'Straw']],
+    ['Luz', 'Qual filtro deixa a luz mais quente, puxada para o laranja?', ['CTO', 'CTB', 'ND', 'Congo Blue']],
+    ['Luz', 'A peça vazada que projeta desenhos no facho de luz é o...', ['Gobo', 'Dimmer', 'Fader', 'Grampo']],
+    ['Luz', 'O que faz o hazer?', ['Solta névoa fina para o facho aparecer', 'Esfria os refletores', 'Divide o sinal DMX', 'Liga o telão']],
+    ['Som', 'O sistema de caixas penduradas em coluna curvada para grandes públicos é o...', ['Line array', 'Retorno', 'Side fill', 'Sub cardioide']],
+    ['Som', 'A caixa virada para o músico ouvir a si mesmo no palco é o...', ['Retorno', 'Sub', 'Front fill', 'Delay']],
+    ['Som', 'A caixa feita para os graves mais profundos é o...', ['Subwoofer', 'Tweeter', 'Retorno', 'Line array']],
+    ['Som', 'O teste com a banda antes do show se chama...', ['Passagem de som', 'Rider', 'Setlist', 'Soundcheck de luz']],
+    ['Produção', 'O documento do artista com as exigências técnicas de som e luz é o...', ['Rider técnico', 'Setlist', 'Release', 'Mapa de mesa']],
+    ['Produção', 'A estrutura metálica onde se penduram luz e som é a...', ['Treliça (box truss)', 'Praticável', 'Case', 'Grade de contenção']],
+    ['Produção', 'O telão montado com placas de LED se chama...', ['Painel de LED', 'Projetor', 'Rotunda', 'Ciclorama']],
+    ['Produção', 'A caixa reforçada usada para transportar equipamento é o...', ['Case', 'Praticável', 'Grid', 'Sling']],
+    ['Produção', 'O tablado modular que eleva parte do palco é o...', ['Praticável', 'Box truss', 'Rotunda', 'Talha']]
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+  var embaralha = function (a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+  var TEMPO = 15, N = 10;
+  var rodada = [], atual = 0, pontos = 0, acertos = 0, restante = TEMPO, relogio = null, travado = false, nome = '';
+
+  try { $('nome').value = localStorage.getItem('quiz-nome') || ''; } catch (e) {}
+
+  function mostra(tela) { ['inicio', 'jogo', 'fim'].forEach(function (t) { $(t).hidden = t !== tela; }); }
+
+  function desenhaRanking(el, lista) {
+    if (!API) { el.innerHTML = '<li class="msg">Abra pela sala do escritório para ver o ranking da equipe.</li>'; return; }
+    if (!lista || !lista.length) { el.innerHTML = '<li class="msg">Ninguém jogou este mês ainda. Seja o primeiro!</li>'; return; }
+    var medalhas = ['🥇', '🥈', '🥉'];
+    el.innerHTML = lista.slice(0, 10).map(function (r, i) {
+      var eu = nome && r.nome.toLowerCase() === nome.toLowerCase();
+      return '<li class="' + (eu ? 'eu' : '') + '"><span><span class="pos">' + (medalhas[i] ? '<span class="medalha">' + medalhas[i] + '</span>' : (i + 1) + '.') + '</span>' + esc(r.nome) +
+        '</span><span class="pts">' + r.pontos + ' pts · ' + r.acertos + '/10</span></li>';
+    }).join('');
+  }
+
+  function carregaRanking(el) {
+    if (!API) { desenhaRanking(el); return; }
+    fetch(API + '?quiz=ranking&t=' + Date.now(), { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { desenhaRanking(el, j.ranking); })
+      .catch(function () { el.innerHTML = '<li class="msg">Não consegui carregar o ranking agora.</li>'; });
+  }
+
+  function comeca() {
+    nome = $('nome').value.trim().slice(0, 24);
+    if (!nome) { $('nome').focus(); $('nome').placeholder = 'Digite seu nome para jogar'; return; }
+    try { localStorage.setItem('quiz-nome', nome); } catch (e) {}
+    rodada = embaralha(BANCO).slice(0, N);
+    atual = 0; pontos = 0; acertos = 0;
+    mostra('jogo');
+    pergunta();
+  }
+
+  function pergunta() {
+    var q = rodada[atual];
+    travado = false; restante = TEMPO;
+    $('contador').textContent = (atual + 1) + '/' + N;
+    $('pontos').textContent = pontos + ' pts';
+    $('tema').textContent = q[0];
+    $('pergunta').textContent = q[1];
+    var certa = q[2][0];
+    $('opcoes').innerHTML = embaralha(q[2]).map(function (o) { return '<button type="button" data-o="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
+    $('opcoes').querySelectorAll('button').forEach(function (b) { b.onclick = function () { responde(b.getAttribute('data-o'), certa); }; });
+    var inicio = Date.now();
+    clearInterval(relogio);
+    relogio = setInterval(function () {
+      restante = Math.max(0, TEMPO - (Date.now() - inicio) / 1000);
+      $('barra').style.width = (restante / TEMPO * 100) + '%';
+      $('tempo').textContent = Math.ceil(restante) + 's';
+      if (restante <= 0) responde(null, certa);
+    }, 100);
+  }
+
+  function responde(escolha, certa) {
+    if (travado) return;
+    travado = true;
+    clearInterval(relogio);
+    var acertou = escolha === certa;
+    if (acertou) { acertos++; pontos += 100 + Math.round(restante / TEMPO * 100); }
+    $('opcoes').querySelectorAll('button').forEach(function (b) {
+      var o = b.getAttribute('data-o');
+      b.disabled = true;
+      if (o === certa) b.className = 'certa'; else if (o === escolha) b.className = 'errada';
+    });
+    $('pontos').textContent = pontos + ' pts';
+    setTimeout(function () { atual++; if (atual < N) pergunta(); else termina(); }, acertou ? 900 : 1600);
+  }
+
+  function termina() {
+    mostra('fim');
+    $('fim-nome').textContent = nome + ', você fez';
+    $('fim-pontos').textContent = pontos + ' pts';
+    $('fim-acertos').textContent = acertos + ' de ' + N + ' certas';
+    if (!API) { $('fim-envio').textContent = 'Placar não enviado (abra pela sala do escritório).'; desenhaRanking($('rank-fim')); return; }
+    $('fim-envio').textContent = 'Enviando para o ranking...';
+    fetch(API, { method: 'POST', credentials: 'omit', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ quiz: 'placar', nome: nome, pontos: pontos, acertos: acertos }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.erro) throw new Error(j.erro);
+        var pos = j.ranking.findIndex(function (r) { return r.nome.toLowerCase() === nome.toLowerCase(); });
+        $('fim-envio').textContent = pos >= 0 ? 'Você está em ' + (pos + 1) + 'º lugar no ranking do mês (vale o seu melhor resultado).' : 'Placar enviado.';
+        desenhaRanking($('rank-fim'), j.ranking);
+      })
+      .catch(function () { $('fim-envio').textContent = 'Não consegui enviar o placar agora.'; carregaRanking($('rank-fim')); });
+  }
+
+  $('jogar').onclick = comeca;
+  $('nome').addEventListener('keydown', function (e) { if (e.key === 'Enter') comeca(); });
+  $('denovo').onclick = function () { mostra('inicio'); carregaRanking($('rank-inicio')); };
+  carregaRanking($('rank-inicio'));
+})();
+</script>
+</body>
+</html>
